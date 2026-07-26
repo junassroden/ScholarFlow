@@ -17,3 +17,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware('auth')->name('dashboard');
+
+Route::get('/auth/google', [AuthController::class, 'redirectGoogle'])->name('google.login');
+Route::get('/auth/google/callback', [AuthController::class, 'callbackGoogle'])->name('google.callback');
+
+Route::get('/auth/github', [AuthController::class, 'redirectGithub'])->name('github.login');
+Route::get('/auth/github/callback', [AuthController::class, 'callbackGithub'])->name('github.callback');
