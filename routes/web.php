@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\SearchController;
+use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\PaperController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -23,3 +26,24 @@ Route::get('/auth/google/callback', [AuthController::class, 'callbackGoogle'])->
 
 Route::get('/auth/github', [AuthController::class, 'redirectGithub'])->name('github.login');
 Route::get('/auth/github/callback', [AuthController::class, 'callbackGithub'])->name('github.callback');
+
+Route::get('/search', [SearchController::class, 'search']);
+
+Route::get('/paper', [PaperController::class, 'show'])->name('paper.show');
+
+Route::get('/test-openaire', function () {
+
+    $response = Http::get(
+        'https://api.openaire.eu/search/publications',
+        [
+            'keywords' => 'artificial intelligence',
+            'size' => 1,
+        ]
+    );
+
+    dd([
+        'status' => $response->status(),
+        'headers' => $response->headers(),
+        'body' => $response->body(),
+    ]);
+});
