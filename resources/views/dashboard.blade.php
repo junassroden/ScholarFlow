@@ -269,41 +269,75 @@
         <!-- MAIN RESULTS AREA (Hidden initially) -->
         <div id="main-content" class="hidden w-full max-w-5xl mx-auto px-4 sm:px-8 pb-20 flex-1">
 
-            <!-- Filters & Sort -->
+            <!-- Toolbar (Filters & Sort) -->
             <div
-                class="fade-in-up mt-4 mb-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+                class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+
+                <!-- Filters -->
                 <div class="flex flex-wrap items-center gap-3">
-                    <span class="text-sm font-medium text-slate-500 mr-2">Filters:</span>
-                    <select
-                        class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none pr-8 relative">
-                        <option>Publication Year</option>
-                        <option>2024</option>
-                        <option>2023</option>
-                        <option>2022</option>
+                    <div class="flex items-center gap-2 mr-2 text-slate-500 hidden sm:flex">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                            </path>
+                        </svg>
+                        <span class="text-xs font-bold tracking-wider uppercase">Filters</span>
+                    </div>
+
+                    <!-- Year -->
+                    <select id="year-filter"
+                        class="bg-slate-50 border border-slate-200 text-sm font-medium text-slate-700 rounded-xl px-4 py-2 hover:bg-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
+                        <option value="">Publication Year</option>
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
                     </select>
-                    <select
-                        class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none pr-8">
-                        <option>Open Access</option>
-                        <option>Only Open Access</option>
+
+                    <!-- Open Access -->
+                    <select id="oa-filter"
+                        class="bg-slate-50 border border-slate-200 text-sm font-medium text-slate-700 rounded-xl px-4 py-2 hover:bg-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
+                        <option value="">Open Access</option>
+                        <option value="open">Only Open Access</option>
                     </select>
-                    <select
-                        class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none pr-8">
-                        <option>API Source</option>
-                        <option>Semantic Scholar</option>
+
+                    <!-- API -->
+                    <select id="source-filter"
+                        class="bg-slate-50 border border-slate-200 text-sm font-medium text-slate-700 rounded-xl px-4 py-2 hover:bg-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
+                        <option value="">All Sources</option>
+                        <option value="ArXiv">ArXiv</option>
+                        <option value="OpenAlex">OpenAlex</option>
+                        <option value="Crossref">Crossref</option>
+                        <option value="CORE">CORE</option>
+                        <option value="Europe PMC">Europe PMC</option>
+                        <option value="DOAJ">DOAJ</option>
+                        <option value="PubMed">PubMed</option>
+                        <option value="Zenodo">Zenodo</option>
+                        <option value="OpenAIRE">OpenAIRE</option>
                     </select>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-slate-500">Sort By:</span>
-                    <select
-                        class="bg-white border border-slate-200 text-slate-900 text-sm rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none pr-8 font-medium">
-                        <option>Most Relevant</option>
-                        <option>Newest</option>
-                        <option>Oldest</option>
-                        <option>Most Cited</option>
+
+                <!-- Sort -->
+                <div
+                    class="flex items-center gap-3 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-4">
+                    <div class="flex items-center gap-2 text-slate-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
+                        </svg>
+                        <span class="text-xs font-bold tracking-wider uppercase">Sort</span>
+                    </div>
+
+                    <select id="sort-filter"
+                        class="bg-blue-50 border border-blue-100 text-blue-700 text-sm font-semibold rounded-xl px-4 py-2 hover:bg-blue-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer">
+                        <option value="relevant">Most Relevant</option>
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="citations">Most Cited</option>
                     </select>
                 </div>
             </div>
-
             <!-- Results Feed -->
             <div id="results-feed" class="space-y-5 fade-in-up">
                 <!-- Skeleton / Results will be injected here via JS -->
@@ -314,9 +348,13 @@
                 <button id="load-more-btn" onclick="loadMore()"
                     class="px-8 py-3 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-medium rounded-2xl shadow-sm transition-all duration-200 inline-flex items-center gap-2">
                     <span id="load-more-text">Load More Papers</span>
-                    <svg id="load-more-spinner" class="w-5 h-5 text-blue-600 animate-spin hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg id="load-more-spinner" class="w-5 h-5 text-blue-600 animate-spin hidden"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                     </svg>
                 </button>
             </div>
@@ -610,115 +648,210 @@
         // Core API Fetch Function
         async function fetchPapers(page, isAppend = false) {
             isFetching = true;
+
             const resultsContainer = document.getElementById('results-feed');
 
             try {
-                const response = await fetch(`/search?q=${encodeURIComponent(currentQuery)}&page=${page}`);
+
+                // Get filter values
+                const year = document.getElementById('year-filter')?.value || "";
+                const openAccess = document.getElementById('oa-filter')?.value || "";
+                const source = document.getElementById('source-filter')?.value || "";
+                const sort = document.getElementById('sort-filter')?.value || "relevant";
+
+                // Build URL parameters
+                const params = new URLSearchParams({
+                    q: currentQuery,
+                    page: page
+                });
+
+                if (year) params.append('year', year);
+                if (openAccess) params.append('open_access', openAccess);
+                if (source) params.append('source', source);
+                if (sort) params.append('sort', sort);
+
+                // Request
+                const response = await fetch(`/search?${params.toString()}`);
                 const data = await response.json();
 
                 if (data.success && data.results.length > 0) {
+
                     renderResults(data.results, isAppend);
 
-                    // Show or hide Load More button based on total pages remaining
                     if (page * data.per_page < data.total) {
                         showLoadMoreButton();
                     } else {
                         hideLoadMoreButton();
                     }
+
                 } else {
+
                     if (!isAppend) {
                         resultsContainer.innerHTML = `
-                            <div class="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <div class="text-slate-300 mb-4"><svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                                <h3 class="font-poppins text-xl font-medium text-slate-800 mb-2">No papers found</h3>
-                                <p class="text-slate-500">Try adjusting your search terms or keywords.</p>
-                            </div>
-                        `;
+                    <div class="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                        <div class="text-slate-300 mb-4">
+                            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+
+                        <h3 class="font-poppins text-xl font-medium text-slate-800 mb-2">
+                            No papers found
+                        </h3>
+
+                        <p class="text-slate-500">
+                            Try adjusting your search terms or keywords.
+                        </p>
+                    </div>
+                `;
                     }
+
                     hideLoadMoreButton();
                 }
+
             } catch (error) {
+
                 console.error("Error fetching papers:", error);
+
                 if (!isAppend) {
                     resultsContainer.innerHTML = `
-                        <div class="text-center py-12 bg-red-50 rounded-3xl border border-red-100">
-                            <p class="text-red-600 font-medium">Failed to retrieve data. Please try again later.</p>
-                        </div>
-                    `;
+                <div class="text-center py-12 bg-red-50 rounded-3xl border border-red-100">
+                    <p class="text-red-600 font-medium">
+                        Failed to retrieve data. Please try again later.
+                    </p>
+                </div>
+            `;
                 }
+
                 hideLoadMoreButton();
+
             } finally {
+
                 isFetching = false;
+
             }
         }
 
         // Render HTML for Cards
         function renderResults(papers, isAppend = false) {
             const resultsContainer = document.getElementById('results-feed');
-            
+
             if (!isAppend) {
                 resultsContainer.innerHTML = '';
             }
 
             papers.forEach((paper, index) => {
+
                 const authors = paper.authors || "Unknown Authors";
+
                 const abstract = paper.abstract
                     ? (paper.abstract.length > 250
                         ? paper.abstract.substring(0, 250) + "..."
                         : paper.abstract)
                     : "No abstract available.";
+
                 const venue = paper.source || "Unknown Source";
                 const year = paper.year || "N/A";
                 const citations = paper.citations
                     ? paper.citations.toLocaleString()
                     : "0";
 
-                // Staggered animation entry for newly rendered cards
+                // Build query string for Laravel route
+                const params = new URLSearchParams({
+                    title: paper.title || "",
+                    authors: paper.authors || "",
+                    abstract: paper.abstract || "",
+                    year: paper.year || "",
+                    source: paper.source || "",
+                    citations: paper.citations || 0,
+                    link: paper.link || ""
+                });
+
                 const animationStyle = `animation: fadeSlideUp 0.5s ease-out ${index * 0.05}s both;`;
 
                 const cardHTML = `
-                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300" style="${animationStyle}">
-                        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
-                            <h2 class="font-poppins text-xl font-bold text-slate-900 leading-tight md:pr-12 group">
-                                <a href="${paper.link || '#'}" target="_blank" class="hover:text-blue-600 transition-colors">${paper.title}</a>
-                            </h2>
-                            <div class="shrink-0">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                                    ${citations}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4 text-sm">
-                            <span class="font-medium text-slate-700">${authors}</span>
-                            <span class="text-slate-300">•</span>
-                            <span class="text-blue-600 font-medium">${venue}</span>
-                            <span class="text-slate-300">•</span>
-                            <span class="text-slate-500">${year}</span>
-                        </div>
-                        
-                        <p class="text-slate-600 text-sm leading-relaxed mb-6">${abstract}</p>
-                        
-                        <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-50">
-                            <a href="${paper.link || '#'}" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors">
-                                View Paper
-                            </a>
-                            <button class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                                Save
-                            </button>
-                            <button onclick="openModal('ai-modal')" class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ml-auto md:ml-0">
-                                <span class="text-purple-500">✨</span> AI Summary
-                            </button>
-                            <button onclick="openModal('citation-modal')" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Cite
-                            </button>
-                        </div>
-                    </div>
-                `;
-                resultsContainer.insertAdjacentHTML('beforeend', cardHTML);
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300" style="${animationStyle}">
+
+            <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
+
+                <h2 class="font-poppins text-xl font-bold text-slate-900 leading-tight md:pr-12">
+                    ${paper.title}
+                </h2>
+
+                <div class="shrink-0">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6">
+                            </path>
+                        </svg>
+                        ${citations}
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4 text-sm">
+                <span class="font-medium text-slate-700">${authors}</span>
+                <span class="text-slate-300">•</span>
+                <span class="text-blue-600 font-medium">${venue}</span>
+                <span class="text-slate-300">•</span>
+                <span class="text-slate-500">${year}</span>
+            </div>
+
+            <p class="text-slate-600 text-sm leading-relaxed mb-6">
+                ${abstract}
+            </p>
+
+            <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-50">
+
+                <a href="/paper?${params.toString()}"
+                   class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors">
+                    View Paper
+                </a>
+
+                <button class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z">
+                        </path>
+                    </svg>
+                    Save
+                </button>
+
+                <button onclick="openModal('ai-modal')"
+                    class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ml-auto md:ml-0">
+                    <span class="text-purple-500">✨</span>
+                    AI Summary
+                </button>
+
+                <button onclick="openModal('citation-modal')"
+                    class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+
+                    Cite
+
+                </button>
+
+            </div>
+
+        </div>
+        `;
+
+                resultsContainer.insertAdjacentHTML("beforeend", cardHTML);
             });
         }
 
