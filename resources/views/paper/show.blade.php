@@ -1,5 +1,5 @@
 @php
-    $userName = Auth::user()->username ?? 'Researcher';
+    $userName = auth()->user()?->username ?? 'Researcher';
 @endphp
 <!DOCTYPE html>
 <html lang="en" class="bg-[#F8FAFC] text-slate-800 antialiased">
