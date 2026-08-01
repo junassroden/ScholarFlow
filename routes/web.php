@@ -6,6 +6,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PaperController;
+use App\Http\Controllers\AIController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -66,4 +67,27 @@ Route::get('/test-openaire', function () {
         'headers' => $response->headers(),
         'body' => $response->body(),
     ]);
+});
+
+Route::post('/assistant/chat', [AIController::class, 'chat'])
+    ->middleware('auth')
+    ->name('assistant.chat');
+
+
+
+Route::get('/gemini-models', function () {
+
+    $response = Http::get(
+        "https://generativelanguage.googleapis.com/v1beta/models?key=" . env('GEMINI_API_KEY')
+    );
+
+    return $response->json();
+
+});
+
+Route::get('/test-key', function () {
+    return [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL'),
+    ];
 });
