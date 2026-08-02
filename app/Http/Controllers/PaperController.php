@@ -17,6 +17,9 @@ class PaperController extends Controller
                 'source',
                 'citations',
                 'link',
+                'doi',
+                'open_access',
+                'api_source',
             ]),
         ]);
     }
