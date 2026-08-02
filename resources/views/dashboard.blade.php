@@ -784,15 +784,19 @@
                     View Paper
                 </a>
 
-                <button class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z">
-                        </path>
-                    </svg>
-                    Save
+                <button
+                onclick='savePaper(${JSON.stringify(paper)})'
+                class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                </svg>
+
+                Save
+
                 </button>
 
                 <button onclick="openModal('ai-modal')"
@@ -823,6 +827,37 @@
 
                 resultsContainer.insertAdjacentHTML("beforeend", cardHTML);
             });
+        }
+
+        async function savePaper(paper) {
+
+            console.log(paper);
+
+            try {
+
+                const response = await fetch('/library/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(paper)
+                });
+
+                const result = await response.json();
+
+                console.log(result);
+
+                if (result.success) {
+                    alert("Saved!");
+                } else {
+                    alert(result.message ?? "Save failed.");
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         // Helper functions for Load More Button UI State
