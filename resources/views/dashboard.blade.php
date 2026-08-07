@@ -49,7 +49,6 @@
             transform: translateY(0);
         }
 
-        /* Hide scrollbar for chips */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -58,17 +57,93 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Toast animation */
+        #toast {
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        #toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        #toast.hide {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        /* Save button spinner */
+        .save-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .save-btn.loading .save-spinner {
+            display: inline-block;
+        }
+
+        .save-btn.loading .save-text {
+            display: none;
+        }
+
+        .save-btn.saved {
+            background-color: #10b981 !important;
+            border-color: #10b981 !important;
+            color: white !important;
+        }
+
+        .save-btn.saved .save-text {
+            display: inline;
+        }
+
+        .save-btn.saved .save-spinner {
+            display: none;
+        }
     </style>
 </head>
 
 <body class="font-inter flex min-h-screen overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- ====== TOAST ====== -->
+    <div id="toast" class="fixed top-6 right-6 z-[100] transform translate-x-full opacity-0">
+        <div
+            class="flex items-start gap-3 bg-white border border-slate-200 shadow-xl rounded-2xl px-5 py-4 min-w-[280px] max-w-sm">
+            <div id="toast-icon" class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <p id="toast-title" class="font-semibold text-slate-900 text-sm">Success</p>
+                <p id="toast-message" class="text-slate-500 text-sm leading-relaxed"></p>
+            </div>
+            <button onclick="hideToast()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </div>
 
     <!-- Mobile Overlay -->
     <div id="mobile-overlay"
         class="fixed inset-0 bg-slate-900/20 z-40 hidden transition-opacity opacity-0 backdrop-blur-sm lg:hidden"
         onclick="toggleSidebar()"></div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar (unchanged) -->
     <aside id="sidebar"
         class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-100 z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         <!-- Logo -->
@@ -98,14 +173,6 @@
                     </path>
                 </svg>
                 Dashboard
-            </a>
-            <a href="{{ route('search') }}"
-                class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                Search Papers
             </a>
             <a href="{{ route('library') }}"
                 class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors">
@@ -303,6 +370,7 @@
                     </select>
                 </div>
             </div>
+
             <!-- Results Feed -->
             <div id="results-feed" class="space-y-5 fade-in-up">
                 <!-- Skeleton / Results will be injected here via JS -->
@@ -550,12 +618,79 @@
 
     <!-- SCRIPTS -->
     <script>
+        // ============================================
+        // TOAST FUNCTIONS
+        // ============================================
+        function showToast(title, message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const titleEl = document.getElementById('toast-title');
+            const msgEl = document.getElementById('toast-message');
+
+            toast.className = 'fixed top-6 right-6 z-[100] transform translate-x-full opacity-0';
+            icon.className = 'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5';
+
+            if (type === 'success') {
+                icon.classList.add('bg-emerald-50', 'text-emerald-600');
+                titleEl.textContent = title || 'Success';
+            } else if (type === 'error') {
+                icon.classList.add('bg-rose-50', 'text-rose-600');
+                titleEl.textContent = title || 'Error';
+            } else if (type === 'info') {
+                icon.classList.add('bg-blue-50', 'text-blue-600');
+                titleEl.textContent = title || 'Info';
+            }
+            msgEl.textContent = message;
+
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            toast.classList.add('translate-x-0', 'opacity-100');
+
+            clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(hideToast, 4500);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-x-0', 'opacity-100');
+            toast.classList.add('translate-x-full', 'opacity-0');
+        }
+
+        // ============================================
+        // SEARCH PERSISTENCE (sessionStorage)
+        // ============================================
+        function saveSearchState(query, results, page) {
+            sessionStorage.setItem('lastSearch', JSON.stringify({
+                query: query,
+                results: results,
+                page: page || 1
+            }));
+        }
+
+        function restoreSearchState() {
+            const stored = sessionStorage.getItem('lastSearch');
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    return data;
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // ============================================
+        // GLOBALS
+        // ============================================
         let hasSearched = false;
         let currentPage = 1;
         let currentQuery = '';
         let isFetching = false;
+        let savedPaperIds = new Set(); // Track saved papers to update button states
 
-        // Mobile Sidebar Toggle
+        // ============================================
+        // TOGGLE SIDEBAR
+        // ============================================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobile-overlay');
@@ -571,13 +706,17 @@
             }
         }
 
-        // Chip click
+        // ============================================
+        // CHIP CLICK
+        // ============================================
         function setSearch(term) {
             document.getElementById('search-input').value = term;
             executeSearch(new Event('submit'));
         }
 
-        // Initial Search Execution
+        // ============================================
+        // MAIN SEARCH
+        // ============================================
         async function executeSearch(e) {
             e?.preventDefault();
             const query = document.getElementById('search-input').value.trim();
@@ -588,7 +727,7 @@
             currentQuery = query;
             hideLoadMoreButton();
 
-            // Trigger Animation if first search
+            // Trigger Layout Animation if first search
             if (!hasSearched) {
                 triggerLayoutShift();
                 hasSearched = true;
@@ -600,106 +739,92 @@
             await fetchPapers(currentPage, false);
         }
 
-        // Load More Execution
+        // ============================================
+        // LOAD MORE
+        // ============================================
         async function loadMore() {
             if (isFetching) return;
-
             currentPage++;
             setLoadMoreLoading(true);
             await fetchPapers(currentPage, true);
             setLoadMoreLoading(false);
         }
 
-        // Core API Fetch Function
+        // ============================================
+        // FETCH PAPERS
+        // ============================================
         async function fetchPapers(page, isAppend = false) {
             isFetching = true;
-
             const resultsContainer = document.getElementById('results-feed');
 
             try {
-
-                // Get filter values
                 const year = document.getElementById('year-filter')?.value || "";
                 const openAccess = document.getElementById('oa-filter')?.value || "";
                 const source = document.getElementById('source-filter')?.value || "";
                 const sort = document.getElementById('sort-filter')?.value || "relevant";
 
-                // Build URL parameters
                 const params = new URLSearchParams({
                     q: currentQuery,
                     page: page
                 });
-
                 if (year) params.append('year', year);
                 if (openAccess) params.append('open_access', openAccess);
                 if (source) params.append('source', source);
                 if (sort) params.append('sort', sort);
 
-                // Request
                 const response = await fetch(`/search?${params.toString()}`);
                 const data = await response.json();
 
                 if (data.success && data.results.length > 0) {
-
                     renderResults(data.results, isAppend);
+
+                    // Save search state for persistence
+                    const allResults = isAppend
+                        ? [...(JSON.parse(sessionStorage.getItem('lastSearch') || '{"results":[]}').results || []), ...data.results]
+                        : data.results;
+                    saveSearchState(currentQuery, allResults, page);
 
                     if (page * data.per_page < data.total) {
                         showLoadMoreButton();
                     } else {
                         hideLoadMoreButton();
                     }
-
                 } else {
-
                     if (!isAppend) {
                         resultsContainer.innerHTML = `
-                    <div class="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                        <div class="text-slate-300 mb-4">
-                            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                                </path>
-                            </svg>
-                        </div>
-
-                        <h3 class="font-poppins text-xl font-medium text-slate-800 mb-2">
-                            No papers found
-                        </h3>
-
-                        <p class="text-slate-500">
-                            Try adjusting your search terms or keywords.
-                        </p>
-                    </div>
-                `;
+                            <div class="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                <div class="text-slate-300 mb-4">
+                                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <h3 class="font-poppins text-xl font-medium text-slate-800 mb-2">No papers found</h3>
+                                <p class="text-slate-500">Try adjusting your search terms or keywords.</p>
+                            </div>
+                        `;
                     }
-
                     hideLoadMoreButton();
                 }
-
             } catch (error) {
-
                 console.error("Error fetching papers:", error);
-
                 if (!isAppend) {
                     resultsContainer.innerHTML = `
-                <div class="text-center py-12 bg-red-50 rounded-3xl border border-red-100">
-                    <p class="text-red-600 font-medium">
-                        Failed to retrieve data. Please try again later.
-                    </p>
-                </div>
-            `;
+                        <div class="text-center py-12 bg-red-50 rounded-3xl border border-red-100">
+                            <p class="text-red-600 font-medium">Failed to retrieve data. Please try again later.</p>
+                        </div>
+                    `;
                 }
-
                 hideLoadMoreButton();
-
             } finally {
-
                 isFetching = false;
-
             }
         }
 
-        // Render HTML for Cards
+        // ============================================
+        // RENDER RESULTS
+        // ============================================
         function renderResults(papers, isAppend = false) {
             const resultsContainer = document.getElementById('results-feed');
 
@@ -708,22 +833,13 @@
             }
 
             papers.forEach((paper, index) => {
-
                 const authors = paper.authors || "Unknown Authors";
-
                 const abstract = paper.abstract
-                    ? (paper.abstract.length > 250
-                        ? paper.abstract.substring(0, 250) + "..."
-                        : paper.abstract)
+                    ? (paper.abstract.length > 250 ? paper.abstract.substring(0, 250) + "..." : paper.abstract)
                     : "No abstract available.";
-
                 const venue = paper.source || "Unknown Source";
                 const year = paper.year || "N/A";
-                const citations = paper.citations
-                    ? paper.citations.toLocaleString()
-                    : "0";
-
-                console.log(paper);
+                const citations = paper.citations ? paper.citations.toLocaleString() : "0";
 
                 // Build query string for Laravel route
                 const params = new URLSearchParams({
@@ -741,100 +857,97 @@
 
                 const animationStyle = `animation: fadeSlideUp 0.5s ease-out ${index * 0.05}s both;`;
 
+                // Generate a unique ID for this paper's save button
+                const paperId = paper.doi || paper.title.replace(/\s+/g, '_') || `paper_${index}`;
+
                 const cardHTML = `
-        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300" style="${animationStyle}">
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300" style="${animationStyle}">
 
-            <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
+                        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
+                            <h2 class="font-poppins text-xl font-bold text-slate-900 leading-tight md:pr-12">
+                                ${paper.title}
+                            </h2>
+                            <div class="shrink-0">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    </svg>
+                                    ${citations}
+                                </span>
+                            </div>
+                        </div>
 
-                <h2 class="font-poppins text-xl font-bold text-slate-900 leading-tight md:pr-12">
-                    ${paper.title}
-                </h2>
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4 text-sm">
+                            <span class="font-medium text-slate-700">${authors}</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="text-blue-600 font-medium">${venue}</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="text-slate-500">${year}</span>
+                        </div>
 
-                <div class="shrink-0">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6">
-                            </path>
-                        </svg>
-                        ${citations}
-                    </span>
-                </div>
+                        <p class="text-slate-600 text-sm leading-relaxed mb-6">${abstract}</p>
 
-            </div>
+                        <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-50">
 
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4 text-sm">
-                <span class="font-medium text-slate-700">${authors}</span>
-                <span class="text-slate-300">•</span>
-                <span class="text-blue-600 font-medium">${venue}</span>
-                <span class="text-slate-300">•</span>
-                <span class="text-slate-500">${year}</span>
-            </div>
+                            <a href="/paper?${params.toString()}"
+                               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors">
+                                View Paper
+                            </a>
 
-            <p class="text-slate-600 text-sm leading-relaxed mb-6">
-                ${abstract}
-            </p>
+                            <button
+                                data-paper='${JSON.stringify(paper).replace(/'/g, "&#39;")}'
+                                onclick='savePaper(this)'
+                                class="save-btn px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                            >
+                                <span class="save-text">Save</span>
+                                <span class="save-spinner"></span>
+                            </button>
 
-            <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-50">
+                            <button onclick="openModal('ai-modal')"
+                                class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ml-auto md:ml-0">
+                                <span class="text-purple-500">✨</span>
+                                AI Summary
+                            </button>
 
-                <a href="/paper?${params.toString()}"
-                   class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors">
-                    View Paper
-                </a>
+                            <button onclick="openModal('citation-modal')"
+                                class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Cite
+                            </button>
 
-                <button
-                onclick='savePaper(${JSON.stringify(paper)})'
-                class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
-                </svg>
-
-                Save
-
-                </button>
-
-                <button onclick="openModal('ai-modal')"
-                    class="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ml-auto md:ml-0">
-                    <span class="text-purple-500">✨</span>
-                    AI Summary
-                </button>
-
-                <button onclick="openModal('citation-modal')"
-                    class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
-
-                    Cite
-
-                </button>
-
-            </div>
-
-        </div>
-        `;
+                        </div>
+                    </div>
+                `;
 
                 resultsContainer.insertAdjacentHTML("beforeend", cardHTML);
             });
         }
 
-        async function savePaper(paper) {
+        // ============================================
+        // SAVE PAPER (with toast + button state)
+        // ============================================
+        async function savePaper(button) {
+            if (button.disabled) return;
 
-            console.log(paper);
+            // Get paper data from the button's data attribute
+            const paperData = button.getAttribute('data-paper');
+            if (!paperData) {
+                console.error('No paper data found');
+                return;
+            }
+
+            const paper = JSON.parse(paperData);
+
+            // Disable button and show loading
+            button.disabled = true;
+            button.classList.add('loading');
+            button.classList.remove('saved');
 
             try {
-
                 const response = await fetch('/library/save', {
                     method: 'POST',
                     headers: {
@@ -847,20 +960,35 @@
 
                 const result = await response.json();
 
-                console.log(result);
-
-                if (result.success) {
-                    alert("Saved!");
+                if (response.status === 409) {
+                    // Already saved
+                    button.classList.remove('loading');
+                    button.classList.add('saved');
+                    button.disabled = false;
+                    showToast('Already saved', result.message || 'This paper is already in your library.', 'info');
+                } else if (response.ok && result.success) {
+                    // Success
+                    button.classList.remove('loading');
+                    button.classList.add('saved');
+                    button.disabled = false;
+                    showToast('Paper saved!', 'It has been added to your library.', 'success');
                 } else {
-                    alert(result.message ?? "Save failed.");
+                    // Error
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                    showToast('Error', result.message || 'Something went wrong. Please try again.', 'error');
                 }
-
             } catch (err) {
-                console.error(err);
+                console.error('Save error:', err);
+                button.classList.remove('loading');
+                button.disabled = false;
+                showToast('Error', 'Network error. Please try again.', 'error');
             }
         }
 
-        // Helper functions for Load More Button UI State
+        // ============================================
+        // LOAD MORE UI HELPERS
+        // ============================================
         function showLoadMoreButton() {
             const container = document.getElementById('load-more-container');
             if (container) container.classList.remove('hidden');
@@ -887,7 +1015,9 @@
             }
         }
 
-        // The Layout Animation (Center to Top)
+        // ============================================
+        // LAYOUT ANIMATION
+        // ============================================
         function triggerLayoutShift() {
             const spacer = document.getElementById('top-spacer');
             if (spacer) {
@@ -925,6 +1055,9 @@
             }, 400);
         }
 
+        // ============================================
+        // SKELETON
+        // ============================================
         function getSkeletonHTML() {
             return `
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm animate-pulse">
@@ -952,7 +1085,9 @@
             `;
         }
 
-        // Modal Controls
+        // ============================================
+        // MODAL CONTROLS
+        // ============================================
         function openModal(id) {
             const modal = document.getElementById(id);
             modal.classList.remove('hidden');
@@ -973,19 +1108,112 @@
         function copyCitation() {
             const text = document.getElementById('citation-text').innerText;
             navigator.clipboard.writeText(text).then(() => {
-                alert('Citation copied to clipboard!');
+                showToast('Copied!', 'Citation copied to clipboard.', 'success');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Copied!', 'Citation copied to clipboard.', 'success');
             });
         }
 
-        // Keyframe animations
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes fadeSlideUp {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
+        // ============================================
+        // FILTER CHANGE HANDLERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function () {
+            // When filters change, re-run search if there's a query
+            const filters = ['year-filter', 'oa-filter', 'source-filter', 'sort-filter'];
+            filters.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', function () {
+                        if (currentQuery) {
+                            executeSearch(new Event('submit'));
+                        }
+                    });
+                }
+            });
+
+            // ============================================
+            // KEYFRAME ANIMATION STYLE (always inject)
+            // ============================================
+            const style = document.createElement('style');
+            style.innerHTML = `
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    `;
+            document.head.appendChild(style);
+
+            // ============================================
+            // URL PARAMETERS FIRST (take priority)
+            // ============================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryParam = urlParams.get('q');
+
+            if (queryParam) {
+                document.getElementById('search-input').value = queryParam;
+                const year = urlParams.get('year');
+                const source = urlParams.get('source');
+                const openAccess = urlParams.get('open_access');
+                const sort = urlParams.get('sort');
+                if (year) document.getElementById('year-filter').value = year;
+                if (source) document.getElementById('source-filter').value = source;
+                if (openAccess) document.getElementById('oa-filter').value = openAccess;
+                if (sort) document.getElementById('sort-filter').value = sort;
+                executeSearch(new Event('submit'));
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
+                return; // Stop here – don't restore saved state
             }
-        `;
-        document.head.appendChild(style);
+
+            // ============================================
+            // RESTORE SEARCH STATE (only if no URL params)
+            // ============================================
+            const savedState = restoreSearchState();
+            if (savedState && savedState.query) {
+                currentQuery = savedState.query;
+                currentPage = savedState.page || 1;
+
+                document.getElementById('search-input').value = savedState.query;
+
+                if (savedState.results && savedState.results.length > 0) {
+                    if (!hasSearched) {
+                        triggerLayoutShift();
+                        hasSearched = true;
+                    }
+
+                    renderResults(savedState.results, false);
+
+                    if (savedState.results.length >= 10) {
+                        showLoadMoreButton();
+                    }
+
+                    const postSections = document.getElementById('post-search-sections');
+                    if (postSections) {
+                        postSections.classList.remove('hidden');
+                        setTimeout(() => postSections.classList.add('active'), 100);
+                    }
+                }
+            }
+        });
+
+        // ============================================
+        // SAVE SEARCH STATE ON UNLOAD (optional backup)
+        // ============================================
+        window.addEventListener('beforeunload', function () {
+            if (currentQuery) {
+                const feed = document.getElementById('results-feed');
+                // We can't reliably capture rendered results here,
+                // but the state is already saved during fetch.
+            }
+        });
     </script>
 </body>
 
