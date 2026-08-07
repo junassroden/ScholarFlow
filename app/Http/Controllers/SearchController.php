@@ -12,6 +12,8 @@ use App\Services\DOAJService;
 use App\Services\PubMedService;
 use App\Services\ZenodoService;
 use App\Services\OpenAIREService;
+use App\Models\SearchHistory;
+use Illuminate\Support\Facades\Auth;
 
 class SearchController extends Controller
 {
@@ -127,18 +129,27 @@ class SearchController extends Controller
         $page = max((int) $request->input('page', 1), 1);
         $total = count($results);
 
-        $results = array_slice(
+        $paginatedResults = array_slice(
             $results,
             ($page - 1) * self::PER_PAGE,
             self::PER_PAGE
         );
+
+        // ===== SAVE SEARCH HISTORY (ONLY ON FIRST PAGE) =====
+        if ($page === 1 && Auth::check()) {
+            SearchHistory::create([
+                'user_id'     => Auth::id(),
+                'keyword'     => $query,
+                'searched_at' => now(), // uses your existing column name
+            ]);
+        }
 
         return response()->json([
             'success'  => true,
             'page'     => $page,
             'per_page' => self::PER_PAGE,
             'total'    => $total,
-            'results'  => $results
+            'results'  => $paginatedResults
         ]);
     }
 
