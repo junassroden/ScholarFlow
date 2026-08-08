@@ -36,4 +36,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the papers saved in the user's library.
+     * This uses a many-to-many relationship via the 'bookmarks' pivot table.
+     */
+    public function library()
+    {
+        return $this->belongsToMany(Paper::class, 'bookmarks');
+    }
 }

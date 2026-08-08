@@ -9,10 +9,13 @@ class Bookmark extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'paper_id'];
-
-    // Disable timestamps if your table only has created_at
+    // Disable timestamps because your table has only 'created_at' (no 'updated_at')
     public $timestamps = false;
+
+    protected $fillable = [
+        'user_id',
+        'paper_id',
+    ];
 
     public function user()
     {
