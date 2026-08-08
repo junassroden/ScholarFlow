@@ -14,10 +14,13 @@ use App\Services\ZenodoService;
 use App\Services\OpenAIREService;
 use App\Models\SearchHistory;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class SearchController extends Controller
 {
     private const PER_PAGE = 20;
+    private const CACHE_TTL = 300; // 5 minutes
 
     protected $arxiv;
     protected $openAlex;
@@ -62,104 +65,127 @@ class SearchController extends Controller
             ], 400);
         }
 
-        // Get Filter & Sort parameters
-        $yearFilter  = $request->input('year');
-        $oaFilter    = $request->input('open_access');
+        $yearFilter   = $request->input('year');
+        $oaFilter     = $request->input('open_access');
         $sourceFilter = $request->input('source');
         $sortOption   = $request->input('sort', 'relevant');
+        $page         = max((int) $request->input('page', 1), 1);
 
-        // Search every API
-        $arxivResults     = $this->arxiv->search($query);
-        $openAlexResults  = $this->openAlex->search($query);
-        $crossrefResults  = $this->crossref->search($query);
-        $coreResults      = $this->core->search($query);
-        $europePMCResults = $this->europePMC->search($query);
-        $doajResults      = $this->doaj->search($query);
-        $pubMedResults    = $this->pubMed->search($query);
-        $zenodoResults    = $this->zenodo->search($query);
-        $openAIREResults  = $this->openAIRE->search($query);
+        // Build a unique cache key
+        $cacheKey = 'search_' . md5(serialize([
+            $query, $yearFilter, $oaFilter, $sourceFilter, $sortOption, $page
+        ]));
 
-        // Merge all APIs
-        $results = array_merge(
-            $arxivResults,
-            $openAlexResults,
-            $crossrefResults,
-            $coreResults,
-            $europePMCResults,
-            $doajResults,
-            $pubMedResults,
-            $zenodoResults,
-            $openAIREResults
-        );
+        // Try to get cached result
+        try {
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                // Save history only on first page (even if cached)
+                if ($page === 1 && Auth::check()) {
+                    SearchHistory::create([
+                        'user_id'     => Auth::id(),
+                        'keyword'     => $query,
+                        'searched_at' => now(),
+                    ]);
+                }
+                return response()->json($cached);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Cache read failed: ' . $e->getMessage());
+        }
+
+        // Call each service sequentially
+        $allResults = [];
+        $services = [
+            'arXiv'     => $this->arxiv,
+            'OpenAlex'  => $this->openAlex,
+            'Crossref'  => $this->crossref,
+            'CORE'      => $this->core,
+            'EuropePMC' => $this->europePMC,
+            'DOAJ'      => $this->doaj,
+            'PubMed'    => $this->pubMed,
+            'Zenodo'    => $this->zenodo,
+            'OpenAIRE'  => $this->openAIRE,
+        ];
+
+        foreach ($services as $name => $service) {
+            try {
+                $papers = $service->search($query);
+                if (is_array($papers)) {
+                    $allResults = array_merge($allResults, $papers);
+                }
+            } catch (\Exception $e) {
+                Log::error("Error from {$name}: " . $e->getMessage());
+                // Continue with other services
+            }
+        }
 
         // Remove duplicates
-        $results = $this->removeDuplicates($results);
+        $results = $this->removeDuplicates($allResults);
 
-        // Filter results
+        // Apply filters
         if ($yearFilter || $oaFilter || $sourceFilter) {
             $results = array_filter($results, function ($paper) use ($yearFilter, $oaFilter, $sourceFilter) {
-                // Filter by Year
                 if (!empty($yearFilter) && (string)($paper['year'] ?? '') !== (string)$yearFilter) {
                     return false;
                 }
-
-                // Filter by Open Access
                 if ($oaFilter === 'open') {
                     $isOpen = !empty($paper['is_oa']) || !empty($paper['open_access']);
                     if (!$isOpen) {
                         return false;
                     }
                 }
-
-                // Filter by API Source
                 if (!empty($sourceFilter) && strcasecmp($paper['source'] ?? '', $sourceFilter) !== 0) {
                     return false;
                 }
-
                 return true;
             });
-
             $results = array_values($results);
         }
 
-        // Sort papers
+        // Sort
         $results = $this->sortResults($results, $sortOption);
 
-        // Pagination
-        $page = max((int) $request->input('page', 1), 1);
+        // Paginate
         $total = count($results);
-
         $paginatedResults = array_slice(
             $results,
             ($page - 1) * self::PER_PAGE,
             self::PER_PAGE
         );
 
-        // ===== SAVE SEARCH HISTORY (ONLY ON FIRST PAGE) =====
-        if ($page === 1 && Auth::check()) {
-            SearchHistory::create([
-                'user_id'     => Auth::id(),
-                'keyword'     => $query,
-                'searched_at' => now(), // uses your existing column name
-            ]);
-        }
-
-        return response()->json([
+        $responseData = [
             'success'  => true,
             'page'     => $page,
             'per_page' => self::PER_PAGE,
             'total'    => $total,
             'results'  => $paginatedResults
-        ]);
+        ];
+
+        // Store in cache
+        try {
+            Cache::put($cacheKey, $responseData, self::CACHE_TTL);
+        } catch (\Exception $e) {
+            Log::warning('Cache write failed: ' . $e->getMessage());
+        }
+
+        // Save search history (first page only)
+        if ($page === 1 && Auth::check()) {
+            SearchHistory::create([
+                'user_id'     => Auth::id(),
+                'keyword'     => $query,
+                'searched_at' => now(),
+            ]);
+        }
+
+        return response()->json($responseData);
     }
 
-    /**
-     * Remove duplicate papers.
-     */
+    // ---- Helper methods ----
+
     private function removeDuplicates(array $papers): array
     {
         $unique = [];
-
         foreach ($papers as $paper) {
             if (!empty($paper['doi'])) {
                 $key = strtolower(trim($paper['doi']));
@@ -167,12 +193,10 @@ class SearchController extends Controller
                 $title = strtolower(trim($paper['title'] ?? ''));
                 $title = preg_replace('/\s+/', ' ', $title);
                 $key = preg_replace('/[^a-z0-9]/', '', $title);
-
                 if ($key === '') {
                     $key = md5(json_encode($paper));
                 }
             }
-
             if (!isset($unique[$key])) {
                 $unique[$key] = $paper;
             } else {
@@ -181,13 +205,9 @@ class SearchController extends Controller
                 }
             }
         }
-
         return array_values($unique);
     }
 
-    /**
-     * Score a paper.
-     */
     private function paperScore(array $paper): int
     {
         $score = 0;
@@ -207,38 +227,28 @@ class SearchController extends Controller
         return $score;
     }
 
-    /**
-     * Sort papers according to criteria.
-     */
     private function sortResults(array $papers, string $sort = 'relevant'): array
     {
         usort($papers, function ($a, $b) use ($sort) {
             if ($sort === 'newest') {
                 return ((int)($b['year'] ?? 0)) <=> ((int)($a['year'] ?? 0));
             }
-
             if ($sort === 'oldest') {
                 return ((int)($a['year'] ?? 0)) <=> ((int)($b['year'] ?? 0));
             }
-
             if ($sort === 'citations') {
                 return ((int)($b['citations'] ?? 0)) <=> ((int)($a['citations'] ?? 0));
             }
-
-            // Default: Most Relevant (Citations desc, then Year desc)
+            // Default: Most Relevant
             $citationA = $a['citations'] ?? 0;
             $citationB = $b['citations'] ?? 0;
-
             if ($citationA !== $citationB) {
                 return $citationB <=> $citationA;
             }
-
             $yearA = (int)($a['year'] ?? 0);
             $yearB = (int)($b['year'] ?? 0);
-
             return $yearB <=> $yearA;
         });
-
         return $papers;
     }
 }

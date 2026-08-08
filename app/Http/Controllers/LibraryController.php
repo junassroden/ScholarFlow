@@ -10,9 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class LibraryController extends Controller
 {
-    /**
-     * Display the user's library.
-     */
     public function index()
     {
         $savedPapers = Bookmark::with('paper')
@@ -25,72 +22,56 @@ class LibraryController extends Controller
         return view('library', compact('savedPapers'));
     }
 
-    /**
-     * Save a paper (bookmark) – POST /library/save
-     */
     public function save(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'title'      => 'required|string|max:255',
-                'authors'    => 'nullable|string',
-                'citations'  => 'nullable',
-                'abstract'   => 'nullable|string',
-                'year'       => 'nullable|integer',
-                'doi'        => 'nullable|string',
-                'link'       => 'nullable|url',
-                'api_source' => 'nullable|string',
-                'source'     => 'nullable|string',
-            ]);
+            $data = $request->all();
 
-            // Clean citations
-            $citationCount = 0;
-            if (!empty($validated['citations'])) {
-                $cleaned = preg_replace('/[^0-9]/', '', (string) $validated['citations']);
-                $citationCount = (int) $cleaned;
+            // Validate required fields
+            if (empty($data['title'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Paper title is required.'
+                ], 422);
             }
 
-            // Extract year from authors if not provided
-            $year = $validated['year'] ?? null;
-            if (!$year && !empty($validated['authors'])) {
-                if (preg_match('/\b(\d{4})\b/', $validated['authors'], $matches)) {
-                    $year = (int) $matches[1];
-                }
+            // Find or create paper using DOI if available, else title
+            $paper = null;
+            if (!empty($data['doi'])) {
+                $paper = Paper::where('doi', $data['doi'])->first();
             }
 
-            // Find or create paper
-            $paper = Paper::firstOrCreate(
-                ['title' => $validated['title']],
-                [
-                    'abstract'         => $validated['abstract'] ?? null,
-                    'publication_year' => $year,
-                    'citation_count'   => $citationCount,
-                    'doi'              => $validated['doi'] ?? null,
-                    'pdf_url'          => $validated['link'] ?? null,
-                    'journal'          => $validated['source'] ?? null,
-                    'api_source'       => $validated['api_source'] ?? null,
-                ]
-            );
-
-            // Update existing paper with new data if necessary
-            if (!$paper->wasRecentlyCreated) {
-                $paper->update(array_filter([
-                    'abstract'         => $validated['abstract'] ?? $paper->abstract,
-                    'publication_year' => $year ?? $paper->publication_year,
-                    'citation_count'   => $citationCount ?? $paper->citation_count,
-                    'doi'              => $validated['doi'] ?? $paper->doi,
-                    'pdf_url'          => $validated['link'] ?? $paper->pdf_url,
-                    'journal'          => $validated['source'] ?? $paper->journal,
-                    'api_source'       => $validated['api_source'] ?? $paper->api_source,
-                ]));
+            if (!$paper) {
+                // Try by title if DOI not found or not provided
+                $paper = Paper::where('title', $data['title'])->first();
             }
+
+            if (!$paper) {
+                $paper = new Paper();
+            }
+
+            // Fill paper data
+            $paper->title = $data['title'];
+            $paper->abstract = $data['abstract'] ?? null;
+            $paper->publication_year = $data['year'] ?? null;
+            $paper->citation_count = isset($data['citations']) ? (int) preg_replace('/[^0-9]/', '', (string) $data['citations']) : 0;
+            $paper->pdf_url = $data['link'] ?? null;
+            $paper->journal = $data['source'] ?? null;
+            $paper->api_source = $data['api_source'] ?? null;
+
+            // If DOI is provided, set it (if not already set)
+            if (!empty($data['doi']) && empty($paper->doi)) {
+                $paper->doi = $data['doi'];
+            }
+
+            $paper->save();
 
             // Check if already bookmarked by this user
-            $existingBookmark = Bookmark::where('user_id', Auth::id())
-                                        ->where('paper_id', $paper->id)
-                                        ->first();
+            $existing = Bookmark::where('user_id', Auth::id())
+                ->where('paper_id', $paper->id)
+                ->first();
 
-            if ($existingBookmark) {
+            if ($existing) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This paper is already in your library.',
@@ -99,51 +80,68 @@ class LibraryController extends Controller
             }
 
             // Create bookmark
-            $bookmark = Bookmark::create([
-                'user_id'  => Auth::id(),
+            Bookmark::create([
+                'user_id' => Auth::id(),
                 'paper_id' => $paper->id,
             ]);
 
             return response()->json([
-                'success'  => true,
-                'message'  => 'Paper saved to your library!',
-                'paper'    => $paper,
-                'bookmark' => $bookmark,
+                'success' => true,
+                'message' => 'Paper saved to your library!',
+                'paper' => $paper,
+                'doi' => $paper->doi,
             ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error: ' . $e->getMessage(),
-            ], 422);
         } catch (\Exception $e) {
+            // Return detailed error for debugging
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong. Please try again.',
+                'message' => 'Error: ' . $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
 
-    /**
-     * Remove a paper from the library (delete bookmark) – DELETE /library/{paper}
-     */
-    public function destroy(Paper $paper)
+    public function destroy($identifier)
     {
-        $bookmark = Bookmark::where('user_id', Auth::id())
-                            ->where('paper_id', $paper->id)
-                            ->first();
+        try {
+            // Try to find paper by DOI first, then by ID
+            $paper = Paper::where('doi', $identifier)->first();
 
-        if (!$bookmark) {
+            if (!$paper && is_numeric($identifier)) {
+                $paper = Paper::find($identifier);
+            }
+
+            if (!$paper) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Paper not found.'
+                ], 404);
+            }
+
+            $bookmark = Bookmark::where('user_id', Auth::id())
+                ->where('paper_id', $paper->id)
+                ->first();
+
+            if (!$bookmark) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Paper not found in your library.'
+                ], 404);
+            }
+
+            $bookmark->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paper removed from your library.',
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Paper not found in your library.',
-            ], 404);
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $bookmark->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Paper removed from your library.',
-        ]);
     }
 }
